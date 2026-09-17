@@ -193,7 +193,9 @@ different jobs.
 - **The field panel** is drawn by the MCU and is what an operator sees in the sun.
 - **The dashboard** is one self-contained HTML file with zero external requests, serving both a narrow kiosk view and a laptop.
 
-**Open the demo:** [`demo/dashboard.html`](demo/dashboard.html) — committed here, opens straight from a clone, no install.
+**Open the demo:** [`demo/dashboard.html`](demo/dashboard.html) — a single self-contained file. No install, no build step.
+
+> GitHub displays that file as source rather than rendering it. To see the dashboard itself, clone or download this repository and open `demo/dashboard.html` in any browser.
 
 > The demo runs on a **synthetic demonstration dataset**, not real field data. Its positions are placeholders.
 
