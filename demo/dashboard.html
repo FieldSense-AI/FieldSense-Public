@@ -1,0 +1,2439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>FieldSense AI — Offline Field Intelligence</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #1e293b;
+      --green: #10b981;
+      --yellow: #f59e0b;
+      --red: #ef4444;
+      --blue: #3b82f6;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --border: #334155;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: system-ui, -apple-system, sans-serif; }
+    html { height: 100%; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-size: 11px;
+      line-height: 1.4;
+      padding: 6px 6px 64px;
+      -webkit-text-size-adjust: 100%;
+    }
+
+    /* ---------------------------------------------------------- header */
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 6px; flex-wrap: nowrap;
+      padding-bottom: 4px; margin-bottom: 6px;
+      border-bottom: 1px solid var(--border);
+    }
+    .logo { font-size: 11px; font-weight: 800; letter-spacing: 0.3px; color: var(--green); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .tagline { display: none; font-size: 9px; color: var(--muted); }
+    .badges { display: flex; gap: 4px; align-items: center; flex: 0 0 auto; }
+    .status-badge {
+      font-size: 7px; font-weight: 700; letter-spacing: 0.2px;
+      padding: 2px 5px; border-radius: 9px;
+      background: var(--panel); border: 1px solid var(--border);
+      display: inline-flex; align-items: center; gap: 3px; white-space: nowrap;
+    }
+    .dot { width: 5px; height: 5px; border-radius: 50%; display: inline-block; flex: 0 0 auto; }
+    .dot-green { background: var(--green); }
+    .dot-blue { background: var(--blue); }
+
+    /* ---------------------------------------------------------- layout */
+    .layout { display: flex; flex-direction: column; gap: 6px; }
+    /* On the compact panel the wrappers dissolve so every panel is a direct
+       flex item and can be ordered independently of its desktop column. */
+    .col { display: contents; }
+    .p-hero { order: 1; }
+    .p-map { order: 2; }
+    .p-zones { order: 3; }
+    .p-recs { order: 4; }
+    .p-status { order: 5; }
+    .panel { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 7px; }
+    .panel-title {
+      font-size: 8px; font-weight: 700; letter-spacing: 0.6px;
+      text-transform: uppercase; color: var(--muted); margin-bottom: 6px;
+    }
+
+    /* ---------------------------------------------------------- hero */
+    .hero-top { display: flex; align-items: center; gap: 7px; min-width: 0; }
+    .score { font-size: 26px; font-weight: 800; line-height: 1; flex: 0 0 auto; }
+    .hero-bar { margin-left: auto; flex: 1 1 auto; min-width: 60px; max-width: 104px; }
+    .status-tag {
+      display: inline-block; padding: 2px 6px; border-radius: 4px;
+      font-size: 8px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.3px;
+    }
+    .status-HEALTHY { background: rgba(16, 185, 129, 0.18); color: var(--green); border: 1px solid var(--green); }
+    .status-MODERATE { background: rgba(245, 158, 11, 0.18); color: var(--yellow); border: 1px solid var(--yellow); }
+    .status-POOR { background: rgba(239, 68, 68, 0.18); color: var(--red); border: 1px solid var(--red); }
+    .status-UNAVAILABLE { background: rgba(148, 163, 184, 0.15); color: var(--muted); border: 1px solid var(--border); }
+
+    .zonebar { display: flex; height: 7px; border-radius: 4px; overflow: hidden; background: var(--border); }
+    .zonebar span { display: block; height: 100%; }
+    .zonekey { display: flex; gap: 8px; flex-wrap: wrap; font-size: 7px; color: var(--muted); margin-top: 4px; line-height: 1.2; }
+    .zonekey i { width: 6px; height: 6px; border-radius: 50%; display: inline-block; margin-right: 3px; }
+
+    /* ---------------------------------------------------------- map */
+    .map-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; margin-bottom: 6px; }
+    .map-head .panel-title { margin-bottom: 0; }
+    select {
+      background: var(--bg); color: var(--text); border: 1px solid var(--border);
+      border-radius: 5px; font-size: 9px; padding: 3px 4px; max-width: 118px; cursor: pointer;
+    }
+    .map-box {
+      width: 100%; height: 130px; max-width: 174px; margin: 0 auto;
+      background: #080c14;
+      border: 1px solid var(--border); border-radius: 6px; overflow: hidden;
+    }
+    .map-hint { margin-top: 3px; font-size: 7px; color: var(--muted); line-height: 1.35; }
+
+    /* ---------------------------------------------------------- insights teaser
+       Pinned to the bottom of the viewport on the 240x320 panel so the
+       one-line summary and its Read More control are always reachable
+       without scrolling, whatever the map and list content height. */
+    .p-insights {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
+      border-radius: 10px 10px 0 0;
+      border-bottom: none;
+      box-shadow: 0 -4px 14px rgba(0, 0, 0, 0.5);
+      padding: 6px 8px 8px;
+    }
+    .teaser { display: flex; align-items: center; gap: 5px; min-width: 0; }
+    .teaser-icon { color: var(--blue); font-weight: 800; flex: 0 0 auto; font-size: 10px; }
+    .teaser-text {
+      font-size: 10px; color: var(--text); min-width: 0;
+      white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    .insights-btn {
+      margin-top: 5px; width: 100%; min-height: 28px;
+      background: rgba(59, 130, 246, 0.14); border: 1px solid var(--blue);
+      color: #dbeafe; border-radius: 6px;
+      font-size: 10px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;
+      cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px;
+    }
+    .insights-btn:active { background: rgba(59, 130, 246, 0.3); }
+    .insights-btn .chev { transition: transform 0.2s ease; }
+    .insights-btn.open .chev { transform: rotate(90deg); }
+
+    /* ---------------------------------------------------------- lists */
+    .row { border-bottom: 1px solid var(--border); padding: 6px 0; }
+    .row:first-child { padding-top: 0; }
+    .row:last-child { border-bottom: none; padding-bottom: 0; }
+    .row-head { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+    .row-id { font-size: 10px; font-weight: 700; }
+    .row-sub { font-size: 8px; color: var(--muted); margin-top: 2px; }
+    .row-body { font-size: 9px; margin-top: 3px; line-height: 1.45; }
+    .prio { display: inline-block; font-size: 7px; padding: 1px 4px; border-radius: 3px; font-weight: 800; margin-right: 4px; letter-spacing: 0.3px; }
+    .prio-HIGH, .prio-CRITICAL { background: var(--red); color: #fff; }
+    .prio-MEDIUM { background: var(--yellow); color: #000; }
+    .prio-LOW { background: var(--blue); color: #fff; }
+    .empty { font-size: 9px; color: var(--muted); }
+
+    .kv { display: flex; justify-content: space-between; gap: 8px; font-size: 9px; padding: 2px 0; }
+    .kv span:last-child { font-weight: 700; }
+    .progress-bar { width: 100%; height: 6px; background: var(--border); border-radius: 3px; overflow: hidden; margin-top: 5px; }
+    .progress-fill { height: 100%; background: var(--blue); width: 0%; }
+    .reject { color: var(--red); }
+
+    /* ---------------------------------------------------------- insights drawer */
+    .drawer {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 60;
+      max-height: 55%;
+      background: var(--panel);
+      border-top: 1px solid var(--blue);
+      border-radius: 12px 12px 0 0;
+      box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.55);
+      transform: translateY(110%);
+      transition: transform 0.25s ease;
+      display: flex; flex-direction: column;
+    }
+    .drawer.open { transform: translateY(0); }
+    .drawer-grip { width: 34px; height: 3px; border-radius: 2px; background: var(--border); margin: 6px auto 3px; flex: 0 0 auto; }
+    .drawer-head {
+      display: flex; align-items: center; gap: 6px;
+      padding: 3px 8px 6px; border-bottom: 1px solid var(--border); flex: 0 0 auto;
+    }
+    .drawer-title { font-size: 9px; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); }
+    .ai-badge {
+      font-size: 7px; font-weight: 800; letter-spacing: 0.4px; text-transform: uppercase;
+      padding: 2px 5px; border-radius: 3px;
+      background: rgba(59, 130, 246, 0.15); color: var(--blue); border: 1px solid var(--blue);
+    }
+    .drawer-close {
+      margin-left: auto; flex: 0 0 auto;
+      width: 24px; height: 24px; line-height: 1;
+      background: transparent; border: 1px solid var(--border); color: var(--muted);
+      border-radius: 5px; font-size: 13px; cursor: pointer;
+    }
+    .drawer-body { overflow-y: auto; -webkit-overflow-scrolling: touch; padding: 8px; }
+    .narrative-text { font-size: 10px; line-height: 1.6; }
+    .narrative-zone { border-left: 2px solid var(--border); padding: 5px 0 5px 8px; margin-top: 8px; }
+    .narrative-zone strong { display: block; font-size: 8px; letter-spacing: 0.4px; color: var(--text); margin-bottom: 2px; }
+    .narrative-zone div { font-size: 9px; color: var(--muted); line-height: 1.55; }
+    .narrative-footnote {
+      margin-top: 10px; padding-top: 8px; border-top: 1px solid var(--border);
+      font-size: 7px; color: var(--muted); line-height: 1.5;
+    }
+
+    /* ---------------------------------------------------------- tablet */
+    @media (min-width: 480px) {
+      body { font-size: 12px; padding: 10px; }
+      .logo { font-size: 15px; }
+      .tagline { display: block; }
+      .status-badge { font-size: 9px; padding: 3px 8px; }
+      .panel { padding: 12px; border-radius: 10px; }
+      .panel-title { font-size: 9px; }
+      .score { font-size: 38px; }
+      .map-box { height: 240px; max-width: 320px; }
+      .teaser-text { font-size: 12px; }
+      .insights-btn { min-height: 34px; font-size: 11px; }
+      .row-id { font-size: 12px; }
+      .row-sub, .row-body { font-size: 10px; }
+      .narrative-text { font-size: 12px; }
+      .narrative-zone div { font-size: 11px; }
+      .drawer-title { font-size: 10px; }
+    }
+
+    /* ---------------------------------------------------------- desktop */
+    @media (min-width: 900px) {
+      .layout {
+        display: grid;
+        grid-template-columns: 250px 1fr 280px;
+        gap: 14px; align-items: start;
+      }
+      .col { display: flex; flex-direction: column; gap: 14px; }
+      /* Compact ordering is column-relative only; inside a desktop column the
+         panels follow document order. */
+      .col > .panel { order: 0; }
+      .p-insights {
+        position: static; box-shadow: none; border-radius: 10px;
+        border-bottom: 1px solid var(--border); padding: 12px;
+      }
+      body { padding-bottom: 10px; }
+      .map-box { height: 380px; max-width: 507px; }
+      .drawer {
+        left: 50%; right: auto; width: 100%; max-width: 660px; max-height: 62%;
+        transform: translateX(-50%) translateY(110%);
+      }
+      .drawer.open { transform: translateX(-50%) translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div>
+      <div class="logo">FIELDSENSE AI</div>
+      <div class="tagline">Offline Portable Edge-Intelligence Platform</div>
+    </div>
+    <div class="badges">
+      <span class="status-badge"><span class="dot dot-green"></span> OFFLINE MODE</span>
+      <span class="status-badge"><span class="dot dot-blue"></span> <strong id="dataSource">VIRTUAL</strong></span>
+    </div>
+  </header>
+
+  <div class="layout">
+
+   <div class="col col-left">
+    <!-- 1. Overall score + colour-coded zone status -->
+    <section class="panel p-hero">
+      <div class="hero-top">
+        <div id="healthScore" class="score">--%</div>
+        <span id="healthStatusTag" class="status-tag status-MODERATE">MODERATE</span>
+        <div class="hero-bar"><div id="zoneBar" class="zonebar"></div></div>
+      </div>
+      <div id="zoneKey" class="zonekey"></div>
+    </section>
+
+    
+
+    <!-- 3. One-line teaser + Read More -->
+    <section class="panel p-insights" id="insightsPanel">
+      <div class="teaser">
+        <span class="teaser-icon">&#9679;</span>
+        <span class="teaser-text" id="teaserText"></span>
+      </div>
+      <button type="button" class="insights-btn" id="insightsBtn" aria-expanded="false" aria-controls="insightsDrawer">
+        <span>Read More &mdash; AI Insights</span><span class="chev">&#9656;</span>
+      </button>
+    </section>
+
+    <section class="panel p-status">
+      <div class="panel-title">Status &amp; Diagnostics</div>
+      <div class="kv"><span>Evidence Level</span><span id="evidenceLevel">LIMITED</span></div>
+      <div class="kv"><span>GPS Fix</span><span id="gpsStatus">--</span></div>
+      <div class="kv"><span>Sampling</span><span id="sampleProgress">-- / --</span></div>
+      <div class="progress-bar"><div id="progressFill" class="progress-fill"></div></div>
+      <div class="kv" style="margin-top:6px;"><span>Total Samples</span><span id="diagTotal">0</span></div>
+      <div class="kv"><span>Valid</span><span id="diagValid">0</span></div>
+      <div class="kv"><span>Rejected</span><span id="diagRejected" class="reject">0</span></div>
+    </section>
+   </div>
+
+   <div class="col col-mid">
+    <!-- 2. Field intelligence map -->
+    <section class="panel p-map" id="mapPanel">
+      <div class="map-head">
+        <div class="panel-title">Field Map</div>
+        <select id="layerSelect" aria-label="Map layer">
+          <option value="soil_health">Soil Health</option>
+          <option value="nitrogen">Nitrogen</option>
+          <option value="moisture">Moisture</option>
+          <option value="carbon_readiness">Carbon Readiness</option>
+        </select>
+      </div>
+      <div class="map-box" id="mapSvgContainer">
+        <svg id="fieldMapSvg" width="100%" height="100%" viewBox="0 0 400 300"></svg>
+      </div>
+      <div id="pointDetails" class="map-hint">Tap a cell for details.</div>
+    </section>
+   </div>
+
+   <div class="col col-right">
+    <section class="panel p-zones">
+      <div class="panel-title">Management Zones</div>
+      <div id="zonesList"></div>
+    </section>
+
+    <section class="panel p-recs">
+      <div class="panel-title">What Needs Attention</div>
+      <div id="recsList"></div>
+    </section>
+
+   </div>
+
+  </div>
+
+  <!-- Bottom drawer: covers the lower screen only, the map above stays visible -->
+  <aside class="drawer" id="insightsDrawer" role="region" aria-label="AI insights">
+    <div class="drawer-grip"></div>
+    <div class="drawer-head">
+      <span class="drawer-title">Plain Language Summary</span>
+      <span class="ai-badge" id="narrativeBadge">TEMPLATE</span>
+      <button type="button" class="drawer-close" id="insightsClose" aria-label="Close insights">&times;</button>
+    </div>
+    <div class="drawer-body">
+      <div id="narrativeSummary" class="narrative-text"></div>
+      <div id="narrativeZones"></div>
+      <div id="narrativeFootnote" class="narrative-footnote"></div>
+    </div>
+  </aside>
+
+  <script>
+    const FIELD_DATA = {
+  "field": {
+    "field_name": "Demonstration Field V1",
+    "session_id": "SES-DEMO-V1",
+    "sample_count": 25,
+    "valid_sample_count": 24,
+    "rejected_sample_count": 1,
+    "coverage_ratio": 1.0,
+    "overall_soil_health": 0.67,
+    "soil_health_status": "MODERATE",
+    "methodology_version": "0.1"
+  },
+  "gps_status": {
+    "available": true,
+    "status": "FIXED",
+    "mode": "VIRTUAL"
+  },
+  "sampling_status": {
+    "total_samples": 25,
+    "valid_samples": 24,
+    "rejected_samples": 1,
+    "expected_samples": 25,
+    "progress_ratio": 0.96
+  },
+  "health_summary": {
+    "score": 0.67,
+    "status": "MODERATE",
+    "nitrogen_score": 0.66,
+    "moisture_score": 0.59,
+    "carbon_readiness_score": 0.67,
+    "evidence_level": "LIMITED"
+  },
+  "map": {
+    "bounds": {
+      "min_x_m": 0.0,
+      "max_x_m": 66.28,
+      "min_y_m": 0.0,
+      "max_y_m": 70.35,
+      "units": "metres from field origin (synthetic; no geographic reference)"
+    },
+    "grid_by_layer": {
+      "soil_health": [
+        {
+          "value": 0.139,
+          "support_distance": 1.2,
+          "status": "POOR",
+          "local_x_m": 0.0,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.243,
+          "support_distance": 8.8,
+          "status": "POOR",
+          "local_x_m": 9.98,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.174,
+          "support_distance": 3.2,
+          "status": "POOR",
+          "local_x_m": 20.07,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.164,
+          "support_distance": 2.6,
+          "status": "POOR",
+          "local_x_m": 30.05,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.282,
+          "support_distance": 7.5,
+          "status": "POOR",
+          "local_x_m": 40.14,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.162,
+          "support_distance": 2.1,
+          "status": "POOR",
+          "local_x_m": 50.12,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.266,
+          "support_distance": 6.1,
+          "status": "POOR",
+          "local_x_m": 60.21,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.245,
+          "support_distance": 6.2,
+          "status": "POOR",
+          "local_x_m": 0.0,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.297,
+          "support_distance": 11.1,
+          "status": "POOR",
+          "local_x_m": 9.98,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.271,
+          "support_distance": 7.3,
+          "status": "POOR",
+          "local_x_m": 20.07,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.303,
+          "support_distance": 9.0,
+          "status": "POOR",
+          "local_x_m": 30.05,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.395,
+          "support_distance": 10.5,
+          "status": "POOR",
+          "local_x_m": 40.14,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.521,
+          "support_distance": 8.5,
+          "status": "MODERATE",
+          "local_x_m": 50.12,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.557,
+          "support_distance": 11.1,
+          "status": "MODERATE",
+          "local_x_m": 60.21,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.243,
+          "support_distance": 3.8,
+          "status": "POOR",
+          "local_x_m": 0.0,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.37,
+          "support_distance": 8.0,
+          "status": "POOR",
+          "local_x_m": 9.98,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.176,
+          "support_distance": 2.0,
+          "status": "POOR",
+          "local_x_m": 20.07,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.261,
+          "support_distance": 3.9,
+          "status": "POOR",
+          "local_x_m": 30.05,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.438,
+          "support_distance": 6.7,
+          "status": "MODERATE",
+          "local_x_m": 40.14,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.862,
+          "support_distance": 2.4,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.833,
+          "support_distance": 4.4,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.802,
+          "support_distance": 4.1,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.683,
+          "support_distance": 8.9,
+          "status": "MODERATE",
+          "local_x_m": 9.98,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.655,
+          "support_distance": 7.3,
+          "status": "MODERATE",
+          "local_x_m": 20.07,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.671,
+          "support_distance": 7.9,
+          "status": "MODERATE",
+          "local_x_m": 30.05,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.696,
+          "support_distance": 9.4,
+          "status": "MODERATE",
+          "local_x_m": 40.14,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.756,
+          "support_distance": 11.8,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.838,
+          "support_distance": 6.2,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.831,
+          "support_distance": 6.2,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.823,
+          "support_distance": 7.3,
+          "status": "HEALTHY",
+          "local_x_m": 9.98,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.839,
+          "support_distance": 5.2,
+          "status": "HEALTHY",
+          "local_x_m": 20.07,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.851,
+          "support_distance": 4.7,
+          "status": "HEALTHY",
+          "local_x_m": 30.05,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.839,
+          "support_distance": 7.0,
+          "status": "HEALTHY",
+          "local_x_m": 40.14,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.843,
+          "support_distance": 10.6,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.857,
+          "support_distance": 8.9,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.893,
+          "support_distance": 3.2,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.905,
+          "support_distance": 6.5,
+          "status": "HEALTHY",
+          "local_x_m": 9.98,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.918,
+          "support_distance": 5.7,
+          "status": "HEALTHY",
+          "local_x_m": 20.07,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.936,
+          "support_distance": 4.7,
+          "status": "HEALTHY",
+          "local_x_m": 30.05,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.92,
+          "support_distance": 6.9,
+          "status": "HEALTHY",
+          "local_x_m": 40.14,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.998,
+          "support_distance": 0.6,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.933,
+          "support_distance": 5.8,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.924,
+          "support_distance": 6.9,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.93,
+          "support_distance": 8.5,
+          "status": "HEALTHY",
+          "local_x_m": 9.98,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.935,
+          "support_distance": 7.9,
+          "status": "HEALTHY",
+          "local_x_m": 20.07,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.938,
+          "support_distance": 8.1,
+          "status": "HEALTHY",
+          "local_x_m": 30.05,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.94,
+          "support_distance": 8.8,
+          "status": "HEALTHY",
+          "local_x_m": 40.14,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.936,
+          "support_distance": 6.8,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.886,
+          "support_distance": 8.4,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.977,
+          "support_distance": 3.6,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.959,
+          "support_distance": 5.9,
+          "status": "HEALTHY",
+          "local_x_m": 9.98,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.967,
+          "support_distance": 4.6,
+          "status": "HEALTHY",
+          "local_x_m": 20.07,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.956,
+          "support_distance": 5.7,
+          "status": "HEALTHY",
+          "local_x_m": 30.05,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.959,
+          "support_distance": 5.7,
+          "status": "HEALTHY",
+          "local_x_m": 40.14,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.959,
+          "support_distance": 4.1,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.741,
+          "support_distance": 5.3,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 70.24
+        }
+      ],
+      "nitrogen": [
+        {
+          "value": 0.172,
+          "support_distance": 1.2,
+          "status": "POOR",
+          "local_x_m": 0.0,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.265,
+          "support_distance": 8.8,
+          "status": "POOR",
+          "local_x_m": 9.98,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.204,
+          "support_distance": 3.2,
+          "status": "POOR",
+          "local_x_m": 20.07,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.194,
+          "support_distance": 2.6,
+          "status": "POOR",
+          "local_x_m": 30.05,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.299,
+          "support_distance": 7.5,
+          "status": "POOR",
+          "local_x_m": 40.14,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.192,
+          "support_distance": 2.1,
+          "status": "POOR",
+          "local_x_m": 50.12,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.284,
+          "support_distance": 6.1,
+          "status": "POOR",
+          "local_x_m": 60.21,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.267,
+          "support_distance": 6.2,
+          "status": "POOR",
+          "local_x_m": 0.0,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.313,
+          "support_distance": 11.1,
+          "status": "POOR",
+          "local_x_m": 9.98,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.29,
+          "support_distance": 7.3,
+          "status": "POOR",
+          "local_x_m": 20.07,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.319,
+          "support_distance": 9.0,
+          "status": "POOR",
+          "local_x_m": 30.05,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.398,
+          "support_distance": 10.5,
+          "status": "POOR",
+          "local_x_m": 40.14,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.506,
+          "support_distance": 8.5,
+          "status": "MODERATE",
+          "local_x_m": 50.12,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.537,
+          "support_distance": 11.1,
+          "status": "MODERATE",
+          "local_x_m": 60.21,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.264,
+          "support_distance": 3.8,
+          "status": "POOR",
+          "local_x_m": 0.0,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.377,
+          "support_distance": 8.0,
+          "status": "POOR",
+          "local_x_m": 9.98,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.205,
+          "support_distance": 2.0,
+          "status": "POOR",
+          "local_x_m": 20.07,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.281,
+          "support_distance": 3.9,
+          "status": "POOR",
+          "local_x_m": 30.05,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.436,
+          "support_distance": 6.7,
+          "status": "MODERATE",
+          "local_x_m": 40.14,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.797,
+          "support_distance": 2.4,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.774,
+          "support_distance": 4.4,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.748,
+          "support_distance": 4.1,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.65,
+          "support_distance": 8.9,
+          "status": "MODERATE",
+          "local_x_m": 9.98,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.627,
+          "support_distance": 7.3,
+          "status": "MODERATE",
+          "local_x_m": 20.07,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.643,
+          "support_distance": 7.9,
+          "status": "MODERATE",
+          "local_x_m": 30.05,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.668,
+          "support_distance": 9.4,
+          "status": "MODERATE",
+          "local_x_m": 40.14,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.722,
+          "support_distance": 11.8,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.784,
+          "support_distance": 6.2,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.78,
+          "support_distance": 6.2,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.779,
+          "support_distance": 7.3,
+          "status": "HEALTHY",
+          "local_x_m": 9.98,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.791,
+          "support_distance": 5.2,
+          "status": "HEALTHY",
+          "local_x_m": 20.07,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.802,
+          "support_distance": 4.7,
+          "status": "HEALTHY",
+          "local_x_m": 30.05,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.802,
+          "support_distance": 7.0,
+          "status": "HEALTHY",
+          "local_x_m": 40.14,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.821,
+          "support_distance": 10.6,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.822,
+          "support_distance": 8.9,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.83,
+          "support_distance": 3.2,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.877,
+          "support_distance": 6.5,
+          "status": "HEALTHY",
+          "local_x_m": 9.98,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.904,
+          "support_distance": 5.7,
+          "status": "HEALTHY",
+          "local_x_m": 20.07,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.926,
+          "support_distance": 4.7,
+          "status": "HEALTHY",
+          "local_x_m": 30.05,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.909,
+          "support_distance": 6.9,
+          "status": "HEALTHY",
+          "local_x_m": 40.14,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.998,
+          "support_distance": 0.6,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.923,
+          "support_distance": 5.8,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.9,
+          "support_distance": 6.9,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.914,
+          "support_distance": 8.5,
+          "status": "HEALTHY",
+          "local_x_m": 9.98,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.925,
+          "support_distance": 7.9,
+          "status": "HEALTHY",
+          "local_x_m": 20.07,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.93,
+          "support_distance": 8.1,
+          "status": "HEALTHY",
+          "local_x_m": 30.05,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.933,
+          "support_distance": 8.8,
+          "status": "HEALTHY",
+          "local_x_m": 40.14,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.929,
+          "support_distance": 6.8,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.872,
+          "support_distance": 8.4,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.974,
+          "support_distance": 3.6,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.953,
+          "support_distance": 5.9,
+          "status": "HEALTHY",
+          "local_x_m": 9.98,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.963,
+          "support_distance": 4.6,
+          "status": "HEALTHY",
+          "local_x_m": 20.07,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.951,
+          "support_distance": 5.7,
+          "status": "HEALTHY",
+          "local_x_m": 30.05,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.955,
+          "support_distance": 5.7,
+          "status": "HEALTHY",
+          "local_x_m": 40.14,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.954,
+          "support_distance": 4.1,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.709,
+          "support_distance": 5.3,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 70.24
+        }
+      ],
+      "moisture": [
+        {
+          "value": 0.006,
+          "support_distance": 1.2,
+          "status": "POOR",
+          "local_x_m": 0.0,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.117,
+          "support_distance": 8.8,
+          "status": "POOR",
+          "local_x_m": 9.98,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.044,
+          "support_distance": 3.2,
+          "status": "POOR",
+          "local_x_m": 20.07,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.033,
+          "support_distance": 2.6,
+          "status": "POOR",
+          "local_x_m": 30.05,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.158,
+          "support_distance": 7.5,
+          "status": "POOR",
+          "local_x_m": 40.14,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.03,
+          "support_distance": 2.1,
+          "status": "POOR",
+          "local_x_m": 50.12,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.141,
+          "support_distance": 6.1,
+          "status": "POOR",
+          "local_x_m": 60.21,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.12,
+          "support_distance": 6.2,
+          "status": "POOR",
+          "local_x_m": 0.0,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.175,
+          "support_distance": 11.1,
+          "status": "POOR",
+          "local_x_m": 9.98,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.147,
+          "support_distance": 7.3,
+          "status": "POOR",
+          "local_x_m": 20.07,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.181,
+          "support_distance": 9.0,
+          "status": "POOR",
+          "local_x_m": 30.05,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.277,
+          "support_distance": 10.5,
+          "status": "POOR",
+          "local_x_m": 40.14,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.406,
+          "support_distance": 8.5,
+          "status": "MODERATE",
+          "local_x_m": 50.12,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.443,
+          "support_distance": 11.1,
+          "status": "MODERATE",
+          "local_x_m": 60.21,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.117,
+          "support_distance": 3.8,
+          "status": "POOR",
+          "local_x_m": 0.0,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.252,
+          "support_distance": 8.0,
+          "status": "POOR",
+          "local_x_m": 9.98,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.046,
+          "support_distance": 2.0,
+          "status": "POOR",
+          "local_x_m": 20.07,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.136,
+          "support_distance": 3.9,
+          "status": "POOR",
+          "local_x_m": 30.05,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.322,
+          "support_distance": 6.7,
+          "status": "POOR",
+          "local_x_m": 40.14,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.756,
+          "support_distance": 2.4,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.727,
+          "support_distance": 4.4,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.697,
+          "support_distance": 4.1,
+          "status": "MODERATE",
+          "local_x_m": 0.0,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.579,
+          "support_distance": 8.9,
+          "status": "MODERATE",
+          "local_x_m": 9.98,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.551,
+          "support_distance": 7.3,
+          "status": "MODERATE",
+          "local_x_m": 20.07,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.57,
+          "support_distance": 7.9,
+          "status": "MODERATE",
+          "local_x_m": 30.05,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.599,
+          "support_distance": 9.4,
+          "status": "MODERATE",
+          "local_x_m": 40.14,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.663,
+          "support_distance": 11.8,
+          "status": "MODERATE",
+          "local_x_m": 50.12,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.739,
+          "support_distance": 6.2,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.735,
+          "support_distance": 6.2,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.733,
+          "support_distance": 7.3,
+          "status": "HEALTHY",
+          "local_x_m": 9.98,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.748,
+          "support_distance": 5.2,
+          "status": "HEALTHY",
+          "local_x_m": 20.07,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.761,
+          "support_distance": 4.7,
+          "status": "HEALTHY",
+          "local_x_m": 30.05,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.76,
+          "support_distance": 7.0,
+          "status": "HEALTHY",
+          "local_x_m": 40.14,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.78,
+          "support_distance": 10.6,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.78,
+          "support_distance": 8.9,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.795,
+          "support_distance": 3.2,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.852,
+          "support_distance": 6.5,
+          "status": "HEALTHY",
+          "local_x_m": 9.98,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.883,
+          "support_distance": 5.7,
+          "status": "HEALTHY",
+          "local_x_m": 20.07,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.909,
+          "support_distance": 4.7,
+          "status": "HEALTHY",
+          "local_x_m": 30.05,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.887,
+          "support_distance": 6.9,
+          "status": "HEALTHY",
+          "local_x_m": 40.14,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.998,
+          "support_distance": 0.6,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.899,
+          "support_distance": 5.8,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.879,
+          "support_distance": 6.9,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.895,
+          "support_distance": 8.5,
+          "status": "HEALTHY",
+          "local_x_m": 9.98,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.908,
+          "support_distance": 7.9,
+          "status": "HEALTHY",
+          "local_x_m": 20.07,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.913,
+          "support_distance": 8.1,
+          "status": "HEALTHY",
+          "local_x_m": 30.05,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.914,
+          "support_distance": 8.8,
+          "status": "HEALTHY",
+          "local_x_m": 40.14,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.903,
+          "support_distance": 6.8,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.806,
+          "support_distance": 8.4,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.968,
+          "support_distance": 3.6,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.942,
+          "support_distance": 5.9,
+          "status": "HEALTHY",
+          "local_x_m": 9.98,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.954,
+          "support_distance": 4.6,
+          "status": "HEALTHY",
+          "local_x_m": 20.07,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.938,
+          "support_distance": 5.7,
+          "status": "HEALTHY",
+          "local_x_m": 30.05,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.94,
+          "support_distance": 5.7,
+          "status": "HEALTHY",
+          "local_x_m": 40.14,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.933,
+          "support_distance": 4.1,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.508,
+          "support_distance": 5.3,
+          "status": "MODERATE",
+          "local_x_m": 60.21,
+          "local_y_m": 70.24
+        }
+      ],
+      "carbon_readiness": [
+        {
+          "value": 0.147,
+          "support_distance": 1.2,
+          "status": "POOR",
+          "local_x_m": 0.0,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.25,
+          "support_distance": 8.8,
+          "status": "POOR",
+          "local_x_m": 9.98,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.182,
+          "support_distance": 3.2,
+          "status": "POOR",
+          "local_x_m": 20.07,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.172,
+          "support_distance": 2.6,
+          "status": "POOR",
+          "local_x_m": 30.05,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.288,
+          "support_distance": 7.5,
+          "status": "POOR",
+          "local_x_m": 40.14,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.17,
+          "support_distance": 2.1,
+          "status": "POOR",
+          "local_x_m": 50.12,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.273,
+          "support_distance": 6.1,
+          "status": "POOR",
+          "local_x_m": 60.21,
+          "local_y_m": 0.0
+        },
+        {
+          "value": 0.252,
+          "support_distance": 6.2,
+          "status": "POOR",
+          "local_x_m": 0.0,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.303,
+          "support_distance": 11.1,
+          "status": "POOR",
+          "local_x_m": 9.98,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.277,
+          "support_distance": 7.3,
+          "status": "POOR",
+          "local_x_m": 20.07,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.309,
+          "support_distance": 9.0,
+          "status": "POOR",
+          "local_x_m": 30.05,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.399,
+          "support_distance": 10.5,
+          "status": "POOR",
+          "local_x_m": 40.14,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.523,
+          "support_distance": 8.5,
+          "status": "MODERATE",
+          "local_x_m": 50.12,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.558,
+          "support_distance": 11.1,
+          "status": "MODERATE",
+          "local_x_m": 60.21,
+          "local_y_m": 10.02
+        },
+        {
+          "value": 0.25,
+          "support_distance": 3.8,
+          "status": "POOR",
+          "local_x_m": 0.0,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.375,
+          "support_distance": 8.0,
+          "status": "POOR",
+          "local_x_m": 9.98,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.184,
+          "support_distance": 2.0,
+          "status": "POOR",
+          "local_x_m": 20.07,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.267,
+          "support_distance": 3.9,
+          "status": "POOR",
+          "local_x_m": 30.05,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.441,
+          "support_distance": 6.7,
+          "status": "MODERATE",
+          "local_x_m": 40.14,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.859,
+          "support_distance": 2.4,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.83,
+          "support_distance": 4.4,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 20.04
+        },
+        {
+          "value": 0.8,
+          "support_distance": 4.1,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.683,
+          "support_distance": 8.9,
+          "status": "MODERATE",
+          "local_x_m": 9.98,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.655,
+          "support_distance": 7.3,
+          "status": "MODERATE",
+          "local_x_m": 20.07,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.671,
+          "support_distance": 7.9,
+          "status": "MODERATE",
+          "local_x_m": 30.05,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.696,
+          "support_distance": 9.4,
+          "status": "MODERATE",
+          "local_x_m": 40.14,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.755,
+          "support_distance": 11.8,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.836,
+          "support_distance": 6.2,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 30.06
+        },
+        {
+          "value": 0.829,
+          "support_distance": 6.2,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.822,
+          "support_distance": 7.3,
+          "status": "HEALTHY",
+          "local_x_m": 9.98,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.837,
+          "support_distance": 5.2,
+          "status": "HEALTHY",
+          "local_x_m": 20.07,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.849,
+          "support_distance": 4.7,
+          "status": "HEALTHY",
+          "local_x_m": 30.05,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.838,
+          "support_distance": 7.0,
+          "status": "HEALTHY",
+          "local_x_m": 40.14,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.842,
+          "support_distance": 10.6,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.855,
+          "support_distance": 8.9,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 40.08
+        },
+        {
+          "value": 0.889,
+          "support_distance": 3.2,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.904,
+          "support_distance": 6.5,
+          "status": "HEALTHY",
+          "local_x_m": 9.98,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.918,
+          "support_distance": 5.7,
+          "status": "HEALTHY",
+          "local_x_m": 20.07,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.935,
+          "support_distance": 4.7,
+          "status": "HEALTHY",
+          "local_x_m": 30.05,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.92,
+          "support_distance": 6.9,
+          "status": "HEALTHY",
+          "local_x_m": 40.14,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.998,
+          "support_distance": 0.6,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.931,
+          "support_distance": 5.8,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 50.09
+        },
+        {
+          "value": 0.923,
+          "support_distance": 6.9,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.93,
+          "support_distance": 8.5,
+          "status": "HEALTHY",
+          "local_x_m": 9.98,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.934,
+          "support_distance": 7.9,
+          "status": "HEALTHY",
+          "local_x_m": 20.07,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.937,
+          "support_distance": 8.1,
+          "status": "HEALTHY",
+          "local_x_m": 30.05,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.939,
+          "support_distance": 8.8,
+          "status": "HEALTHY",
+          "local_x_m": 40.14,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.935,
+          "support_distance": 6.8,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.88,
+          "support_distance": 8.4,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 60.22
+        },
+        {
+          "value": 0.977,
+          "support_distance": 3.6,
+          "status": "HEALTHY",
+          "local_x_m": 0.0,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.959,
+          "support_distance": 5.9,
+          "status": "HEALTHY",
+          "local_x_m": 9.98,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.967,
+          "support_distance": 4.6,
+          "status": "HEALTHY",
+          "local_x_m": 20.07,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.955,
+          "support_distance": 5.7,
+          "status": "HEALTHY",
+          "local_x_m": 30.05,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.958,
+          "support_distance": 5.7,
+          "status": "HEALTHY",
+          "local_x_m": 40.14,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.957,
+          "support_distance": 4.1,
+          "status": "HEALTHY",
+          "local_x_m": 50.12,
+          "local_y_m": 70.24
+        },
+        {
+          "value": 0.721,
+          "support_distance": 5.3,
+          "status": "HEALTHY",
+          "local_x_m": 60.21,
+          "local_y_m": 70.24
+        }
+      ]
+    },
+    "active_layer": "soil_health",
+    "available_layers": [
+      "soil_health",
+      "nitrogen",
+      "moisture",
+      "carbon_readiness"
+    ]
+  },
+  "zones": [
+    {
+      "zone_id": "ZONE-01",
+      "status": "POOR",
+      "severity": "CRITICAL",
+      "primary_issue": "moisture",
+      "affected_parameters": [
+        "soil_health",
+        "nitrogen",
+        "moisture",
+        "carbon_readiness"
+      ],
+      "confidence": "HIGH",
+      "area_estimate": 1600.0,
+      "recommendation_count": 3,
+      "centroid_local_m": [
+        23.21,
+        8.13
+      ]
+    },
+    {
+      "zone_id": "ZONE-02",
+      "status": "MODERATE",
+      "severity": "MEDIUM",
+      "primary_issue": "moisture",
+      "affected_parameters": [
+        "soil_health",
+        "nitrogen",
+        "moisture",
+        "carbon_readiness"
+      ],
+      "confidence": "HIGH",
+      "area_estimate": 200.0,
+      "recommendation_count": 3,
+      "centroid_local_m": [
+        55.22,
+        10.02
+      ]
+    },
+    {
+      "zone_id": "ZONE-03",
+      "status": "MODERATE",
+      "severity": "MEDIUM",
+      "primary_issue": "moisture",
+      "affected_parameters": [
+        "soil_health",
+        "nitrogen",
+        "moisture",
+        "carbon_readiness"
+      ],
+      "confidence": "HIGH",
+      "area_estimate": 500.0,
+      "recommendation_count": 3,
+      "centroid_local_m": [
+        28.1,
+        28.05
+      ]
+    },
+    {
+      "zone_id": "ZONE-04",
+      "status": "HEALTHY",
+      "severity": "LOW",
+      "primary_issue": null,
+      "affected_parameters": [],
+      "confidence": "HIGH",
+      "area_estimate": 3300.0,
+      "recommendation_count": 1,
+      "centroid_local_m": [
+        32.22,
+        50.76
+      ]
+    }
+  ],
+  "recommendations": [
+    {
+      "recommendation_id": "REC-ZONE-01-WATER",
+      "zone_id": "ZONE-01",
+      "category": "WATER",
+      "priority": "CRITICAL",
+      "action": "Review irrigation timing and soil moisture conditions in this zone.",
+      "reason": "Zone 'ZONE-01' exhibits moisture deficiency or imbalance (status: POOR).",
+      "confidence": "HIGH"
+    },
+    {
+      "recommendation_id": "REC-ZONE-01-SOIL-CONDITION",
+      "zone_id": "ZONE-01",
+      "category": "SOIL_CONDITION",
+      "priority": "CRITICAL",
+      "action": "Prioritize this zone for detailed soil assessment and management review.",
+      "reason": "Zone 'ZONE-01' exhibits poor overall soil condition status.",
+      "confidence": "HIGH"
+    },
+    {
+      "recommendation_id": "REC-ZONE-01-NUTRIENT-N",
+      "zone_id": "ZONE-01",
+      "category": "NUTRIENT",
+      "priority": "CRITICAL",
+      "action": "Review nitrogen availability and consider targeted nutrient management.",
+      "reason": "Zone 'ZONE-01' exhibits nitrogen availability concern (status: POOR).",
+      "confidence": "HIGH"
+    },
+    {
+      "recommendation_id": "REC-ZONE-02-WATER",
+      "zone_id": "ZONE-02",
+      "category": "WATER",
+      "priority": "MEDIUM",
+      "action": "Review irrigation timing and soil moisture conditions in this zone.",
+      "reason": "Zone 'ZONE-02' exhibits moisture deficiency or imbalance (status: MODERATE).",
+      "confidence": "HIGH"
+    },
+    {
+      "recommendation_id": "REC-ZONE-02-SOIL-CONDITION",
+      "zone_id": "ZONE-02",
+      "category": "SOIL_CONDITION",
+      "priority": "MEDIUM",
+      "action": "Prioritize this zone for detailed soil assessment and management review.",
+      "reason": "Zone 'ZONE-02' exhibits moderate overall soil condition status.",
+      "confidence": "HIGH"
+    },
+    {
+      "recommendation_id": "REC-ZONE-02-NUTRIENT-N",
+      "zone_id": "ZONE-02",
+      "category": "NUTRIENT",
+      "priority": "MEDIUM",
+      "action": "Review nitrogen availability and consider targeted nutrient management.",
+      "reason": "Zone 'ZONE-02' exhibits nitrogen availability concern (status: MODERATE).",
+      "confidence": "HIGH"
+    },
+    {
+      "recommendation_id": "REC-ZONE-03-WATER",
+      "zone_id": "ZONE-03",
+      "category": "WATER",
+      "priority": "MEDIUM",
+      "action": "Review irrigation timing and soil moisture conditions in this zone.",
+      "reason": "Zone 'ZONE-03' exhibits moisture deficiency or imbalance (status: MODERATE).",
+      "confidence": "HIGH"
+    },
+    {
+      "recommendation_id": "REC-ZONE-03-SOIL-CONDITION",
+      "zone_id": "ZONE-03",
+      "category": "SOIL_CONDITION",
+      "priority": "MEDIUM",
+      "action": "Prioritize this zone for detailed soil assessment and management review.",
+      "reason": "Zone 'ZONE-03' exhibits moderate overall soil condition status.",
+      "confidence": "HIGH"
+    },
+    {
+      "recommendation_id": "REC-ZONE-03-NUTRIENT-N",
+      "zone_id": "ZONE-03",
+      "category": "NUTRIENT",
+      "priority": "MEDIUM",
+      "action": "Review nitrogen availability and consider targeted nutrient management.",
+      "reason": "Zone 'ZONE-03' exhibits nitrogen availability concern (status: MODERATE).",
+      "confidence": "HIGH"
+    },
+    {
+      "recommendation_id": "REC-ZONE-04-MONITORING",
+      "zone_id": "ZONE-04",
+      "category": "MONITORING",
+      "priority": "LOW",
+      "action": "Maintain routine soil monitoring and periodic health assessment for this zone.",
+      "reason": "Zone 'ZONE-04' condition is healthy; routine monitoring recommended.",
+      "confidence": "HIGH"
+    }
+  ],
+  "system_status": {
+    "application_status": "READY",
+    "data_source": "VIRTUAL",
+    "processing_status": "COMPLETE",
+    "offline_mode": true
+  },
+  "narrative": {
+    "field_summary": "Field Demonstration Field V1 recorded an overall soil health score of 67%, which the system classifies as MODERATE. 24 of 25 samples passed validation and were used to build the field map. 1 sample was rejected as physically implausible and excluded from the map, but kept in the session record for audit. Interpolated coverage reached 100% of the mapped area. The system identified 4 spatially connected management zones, 1 of which needs attention.",
+    "zone_narratives": {
+      "ZONE-01": "Zone ZONE-01 is among the weaker parts of this field, showing lower soil moisture levels than the surrounding area. It covers roughly 1600 m\u00b2. Spatial sample support here is high, so this pattern is well evidenced. Recommended action: Review irrigation timing and soil moisture conditions in this zone. 3 recommended actions apply to this zone in total.",
+      "ZONE-02": "Zone ZONE-02 is in workable condition but is not the strongest part of this field, showing lower soil moisture levels than the surrounding area. It covers roughly 200 m\u00b2. Spatial sample support here is high, so this pattern is well evidenced. Recommended action: Review irrigation timing and soil moisture conditions in this zone. 3 recommended actions apply to this zone in total.",
+      "ZONE-03": "Zone ZONE-03 is in workable condition but is not the strongest part of this field, showing lower soil moisture levels than the surrounding area. It covers roughly 500 m\u00b2. Spatial sample support here is high, so this pattern is well evidenced. Recommended action: Review irrigation timing and soil moisture conditions in this zone. 3 recommended actions apply to this zone in total.",
+      "ZONE-04": "Zone ZONE-04 is performing well relative to the rest of the field. It covers roughly 3300 m\u00b2. Spatial sample support here is high, so this pattern is well evidenced. Recommended action: Maintain routine soil monitoring and periodic health assessment for this zone."
+    },
+    "generated_by": "MOCK_TEMPLATE_v1",
+    "generation_status": "FALLBACK_TEMPLATE",
+    "guard_violations": [],
+    "is_ai_generated": false,
+    "decision_support_only": true,
+    "evidence_level": "LIMITED",
+    "generation_time_ms": 0.0,
+    "methodology_version": "0.1"
+  }
+};
+
+    // Colour is driven by the status label already present in the data, not by
+    // re-deriving it from numeric cut-points. The classification boundaries are
+    // not part of this public demonstration.
+    const STATUS_COLOURS = { HEALTHY: '#10b981', MODERATE: '#f59e0b', POOR: '#ef4444' };
+    function colorFor(status) {
+      return STATUS_COLOURS[status] || '#475569';
+    }
+
+    function initUI() {
+      document.getElementById('dataSource').innerText = FIELD_DATA.system_status.data_source;
+      document.getElementById('gpsStatus').innerText = FIELD_DATA.gps_status.status;
+
+      const samp = FIELD_DATA.sampling_status;
+      document.getElementById('sampleProgress').innerText = samp.valid_samples + ' / ' + samp.expected_samples;
+      document.getElementById('progressFill').style.width =
+        Math.min(100, (samp.valid_samples / (samp.expected_samples || 1)) * 100) + '%';
+      document.getElementById('diagTotal').innerText = samp.total_samples;
+      document.getElementById('diagValid').innerText = samp.valid_samples;
+      document.getElementById('diagRejected').innerText = samp.rejected_samples;
+
+      const health = FIELD_DATA.health_summary;
+      document.getElementById('healthScore').innerText = Math.round(health.score * 100) + '%';
+      const tag = document.getElementById('healthStatusTag');
+      tag.innerText = health.status;
+      tag.className = 'status-tag status-' + health.status;
+      document.getElementById('evidenceLevel').innerText = health.evidence_level;
+
+      renderZoneStatusBar();
+      renderMap(FIELD_DATA.map.active_layer);
+      renderZones();
+      renderRecommendations();
+      renderNarrative();
+      wireInsights();
+
+      document.getElementById('layerSelect').addEventListener('change', function (e) {
+        renderMap(e.target.value);
+      });
+    }
+
+    // Colour-coded zone status, given top visual priority beside the score.
+    function renderZoneStatusBar() {
+      const order = ['HEALTHY', 'MODERATE', 'POOR'];
+      const tint = { HEALTHY: '#10b981', MODERATE: '#f59e0b', POOR: '#ef4444' };
+      const counts = { HEALTHY: 0, MODERATE: 0, POOR: 0 };
+
+      FIELD_DATA.zones.forEach(function (z) {
+        if (counts[z.status] === undefined) counts[z.status] = 0;
+        counts[z.status] += 1;
+      });
+
+      const total = FIELD_DATA.zones.length;
+      const bar = document.getElementById('zoneBar');
+      const key = document.getElementById('zoneKey');
+      bar.innerHTML = '';
+      key.innerHTML = '';
+
+      if (total === 0) {
+        key.innerText = 'No management zones detected.';
+        return;
+      }
+
+      order.forEach(function (status) {
+        if (!counts[status]) return;
+
+        const seg = document.createElement('span');
+        seg.style.width = ((counts[status] / total) * 100) + '%';
+        seg.style.background = tint[status];
+        seg.title = counts[status] + ' ' + status;
+        bar.appendChild(seg);
+
+        const item = document.createElement('div');
+        const swatch = document.createElement('i');
+        swatch.style.background = tint[status];
+        item.appendChild(swatch);
+        item.appendChild(document.createTextNode(counts[status] + ' ' + status));
+        key.appendChild(item);
+      });
+    }
+
+    function renderMap(layerId) {
+      const svg = document.getElementById('fieldMapSvg');
+      svg.innerHTML = '';
+
+      const gridPoints = FIELD_DATA.map.grid_by_layer[layerId] || [];
+      if (gridPoints.length === 0) return;
+
+      const bounds = FIELD_DATA.map.bounds;
+      const minY = bounds.min_y_m, maxY = bounds.max_y_m;
+      const minX = bounds.min_x_m, maxX = bounds.max_x_m;
+      const width = 360, height = 260, margin = 20;
+
+      gridPoints.forEach(function (pt) {
+        if (pt.value === null) return;
+
+        const x = margin + ((pt.local_x_m - minX) / (maxX - minX || 1)) * (width - 2 * margin);
+        const y = height - margin - ((pt.local_y_m - minY) / (maxY - minY || 1)) * (height - 2 * margin);
+
+        const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        rect.setAttribute('x', x - 12);
+        rect.setAttribute('y', y - 12);
+        rect.setAttribute('width', 24);
+        rect.setAttribute('height', 24);
+        rect.setAttribute('rx', '4');
+        rect.setAttribute('fill', colorFor(pt.status));
+        rect.setAttribute('opacity', '0.88');
+        rect.style.cursor = 'pointer';
+
+        rect.addEventListener('click', function () {
+          const previous = svg.querySelector('.cell-selected');
+          if (previous) {
+            previous.classList.remove('cell-selected');
+            previous.removeAttribute('stroke');
+          }
+          rect.classList.add('cell-selected');
+          rect.setAttribute('stroke', '#f8fafc');
+          rect.setAttribute('stroke-width', '2');
+
+          document.getElementById('pointDetails').innerText =
+            'x ' + pt.local_x_m.toFixed(1) + ' m, y ' + pt.local_y_m.toFixed(1) + ' m'
+            + ' | value ' + pt.value.toFixed(2) + ' | ' + pt.status
+            + ' | nearest sample ' + pt.support_distance + 'm';
+        });
+
+        svg.appendChild(rect);
+      });
+    }
+
+    function renderZones() {
+      const container = document.getElementById('zonesList');
+      container.innerHTML = '';
+
+      if (FIELD_DATA.zones.length === 0) {
+        container.innerHTML = '<div class="empty">No management zones detected.</div>';
+        return;
+      }
+
+      FIELD_DATA.zones.forEach(function (z) {
+        const row = document.createElement('div');
+        row.className = 'row';
+
+        const head = document.createElement('div');
+        head.className = 'row-head';
+        const id = document.createElement('span');
+        id.className = 'row-id';
+        id.innerText = z.zone_id;
+        const status = document.createElement('span');
+        status.className = 'status-tag status-' + z.status;
+        status.innerText = z.status;
+        head.appendChild(id);
+        head.appendChild(status);
+
+        const sub = document.createElement('div');
+        sub.className = 'row-sub';
+        sub.innerText = 'Issue: ' + (z.primary_issue || 'none') + '  |  ' + z.area_estimate + ' m\u00B2';
+
+        row.appendChild(head);
+        row.appendChild(sub);
+        container.appendChild(row);
+      });
+    }
+
+    function renderRecommendations() {
+      const container = document.getElementById('recsList');
+      container.innerHTML = '';
+
+      if (FIELD_DATA.recommendations.length === 0) {
+        container.innerHTML = '<div class="empty">No urgent actions required.</div>';
+        return;
+      }
+
+      FIELD_DATA.recommendations.forEach(function (r) {
+        const row = document.createElement('div');
+        row.className = 'row';
+
+        const head = document.createElement('div');
+        const prio = document.createElement('span');
+        prio.className = 'prio prio-' + r.priority;
+        prio.innerText = r.priority;
+        const label = document.createElement('strong');
+        label.className = 'row-id';
+        label.innerText = r.category + ' \u2014 ' + r.zone_id;
+        head.appendChild(prio);
+        head.appendChild(label);
+
+        const body = document.createElement('div');
+        body.className = 'row-body';
+        body.innerText = r.action;
+
+        row.appendChild(head);
+        row.appendChild(body);
+        container.appendChild(row);
+      });
+    }
+
+    function renderNarrative() {
+      const panel = document.getElementById('insightsPanel');
+      const n = FIELD_DATA.narrative;
+
+      // An absent explanation layer is a normal condition, not an error.
+      if (!n || !n.field_summary) {
+        panel.style.display = 'none';
+        // Reclaim the space reserved for the pinned action bar.
+        document.body.style.paddingBottom = '10px';
+        return;
+      }
+      panel.style.display = '';
+
+      document.getElementById('teaserText').innerText = buildTeaser();
+
+      document.getElementById('narrativeBadge').innerText =
+        n.is_ai_generated ? 'AI Generated' : 'Template';
+      document.getElementById('narrativeSummary').innerText = n.field_summary;
+
+      // Narrative strings are treated as untrusted text and never injected as
+      // HTML, so a future model backend cannot emit markup into the dashboard.
+      const zoneBox = document.getElementById('narrativeZones');
+      zoneBox.innerHTML = '';
+      Object.keys(n.zone_narratives || {}).forEach(function (zid) {
+        const wrap = document.createElement('div');
+        wrap.className = 'narrative-zone';
+        const label = document.createElement('strong');
+        label.innerText = zid;
+        const body = document.createElement('div');
+        body.innerText = n.zone_narratives[zid];
+        wrap.appendChild(label);
+        wrap.appendChild(body);
+        zoneBox.appendChild(wrap);
+      });
+
+      const blocked = (n.guard_violations || []).length;
+      document.getElementById('narrativeFootnote').innerText =
+        'Explanation text only. It restates deterministic engine output and cannot change any score, map, zone, or recommendation. '
+        + 'Source: ' + n.generated_by + ' | Status: ' + n.generation_status
+        + ' | Evidence level: ' + n.evidence_level
+        + ' | Decision support only: ' + n.decision_support_only
+        + ' | Safety filter violations blocked: ' + blocked + '.';
+    }
+
+    // One-line teaser. A 240px line fits roughly 40 characters, so this states
+    // the single most actionable fact rather than truncating the narrative.
+    // The score and status are already shown above it, so the teaser adds new
+    // information instead of repeating them. Values are deterministic, never
+    // model text; the full narrative lives one tap away in the drawer.
+    function buildTeaser() {
+      const zones = FIELD_DATA.zones;
+      if (!zones.length) return 'No management zones detected.';
+
+      let attention = 0;
+      zones.forEach(function (z) { if (z.status === 'POOR') attention += 1; });
+
+      if (attention === 0) return 'All ' + zones.length + ' zones look acceptable.';
+      return attention + ' of ' + zones.length
+           + (attention === 1 ? ' zones needs' : ' zones need') + ' attention.';
+    }
+
+    function isDrawerOpen() {
+      return document.getElementById('insightsDrawer').classList.contains('open');
+    }
+
+    function openInsights() {
+      // Scroll the map to the top of the viewport first, so the area left
+      // uncovered by the drawer shows the map rather than arbitrary content.
+      const mapPanel = document.getElementById('mapPanel');
+      if (mapPanel && mapPanel.scrollIntoView) mapPanel.scrollIntoView(true);
+
+      document.getElementById('insightsDrawer').classList.add('open');
+      const btn = document.getElementById('insightsBtn');
+      btn.classList.add('open');
+      btn.setAttribute('aria-expanded', 'true');
+    }
+
+    function closeInsights() {
+      document.getElementById('insightsDrawer').classList.remove('open');
+      const btn = document.getElementById('insightsBtn');
+      btn.classList.remove('open');
+      btn.setAttribute('aria-expanded', 'false');
+    }
+
+    function wireInsights() {
+      document.getElementById('insightsBtn').addEventListener('click', function () {
+        if (isDrawerOpen()) closeInsights(); else openInsights();
+      });
+      document.getElementById('insightsClose').addEventListener('click', closeInsights);
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' && isDrawerOpen()) closeInsights();
+      });
+    }
+
+    window.onload = initUI;
+  </script>
+</body>
+</html>

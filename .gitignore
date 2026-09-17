@@ -1,0 +1,9 @@
+# OS and editors
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# Nothing generated belongs in this repository. It is a curated showcase:
+# every file here is added deliberately, never produced by a build step.

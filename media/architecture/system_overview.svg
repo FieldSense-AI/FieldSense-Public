@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 560" width="1000" height="560" font-family="system-ui, -apple-system, Segoe UI, Roboto, sans-serif">
+  <rect width="1000" height="560" fill="#0f172a" rx="10"/>
+
+  <text x="36" y="46" fill="#34d399" font-size="24" font-weight="700">FieldSense AI — System Overview</text>
+  <text x="36" y="72" fill="#94a3b8" font-size="14">Soil measurement to farmer-readable guidance. Every stage runs on the handheld unit; nothing leaves the device.</text>
+
+  <!-- SENSING -->
+  <rect x="36" y="100" width="928" height="86" fill="none" stroke="#f59e0b" stroke-width="1.5" rx="8"/>
+  <text x="52" y="124" fill="#f59e0b" font-size="13" font-weight="700">1 · SENSING</text>
+  <rect x="52" y="134" width="290" height="38" fill="#1e293b" rx="5"/>
+  <text x="66" y="158" fill="#e2e8f0" font-size="13">Multi-parameter soil probe</text>
+  <rect x="356" y="134" width="290" height="38" fill="#1e293b" rx="5"/>
+  <text x="370" y="158" fill="#e2e8f0" font-size="13">Satellite positioning</text>
+  <rect x="660" y="134" width="288" height="38" fill="#1e293b" rx="5"/>
+  <text x="674" y="158" fill="#e2e8f0" font-size="13">Operator control — one sample at a time</text>
+
+  <path d="M500 186 L500 206" stroke="#64748b" stroke-width="2"/>
+  <path d="M494 202 L500 212 L506 202 Z" fill="#64748b"/>
+
+  <!-- VALIDATION -->
+  <rect x="36" y="214" width="928" height="72" fill="none" stroke="#38bdf8" stroke-width="1.5" rx="8"/>
+  <text x="52" y="238" fill="#38bdf8" font-size="13" font-weight="700">2 · VALIDATION</text>
+  <text x="52" y="266" fill="#e2e8f0" font-size="13">Physically implausible readings are rejected before they can reach the map — and retained in the record for audit.</text>
+
+  <path d="M500 286 L500 306" stroke="#64748b" stroke-width="2"/>
+  <path d="M494 302 L500 312 L506 302 Z" fill="#64748b"/>
+
+  <!-- INTELLIGENCE -->
+  <rect x="36" y="314" width="928" height="110" fill="none" stroke="#a78bfa" stroke-width="1.5" rx="8"/>
+  <text x="52" y="338" fill="#a78bfa" font-size="13" font-weight="700">3 · INTELLIGENCE · deterministic — same inputs always give the same answer</text>
+  <rect x="52" y="350" width="214" height="58" fill="#1e293b" rx="5"/>
+  <text x="66" y="373" fill="#e2e8f0" font-size="13" font-weight="600">Scoring</text>
+  <text x="66" y="393" fill="#94a3b8" font-size="12">readings → condition index</text>
+  <rect x="280" y="350" width="214" height="58" fill="#1e293b" rx="5"/>
+  <text x="294" y="373" fill="#e2e8f0" font-size="13" font-weight="600">Spatial reconstruction</text>
+  <text x="294" y="393" fill="#94a3b8" font-size="12">sample points → surface</text>
+  <rect x="508" y="350" width="214" height="58" fill="#1e293b" rx="5"/>
+  <text x="522" y="373" fill="#e2e8f0" font-size="13" font-weight="600">Zoning</text>
+  <text x="522" y="393" fill="#94a3b8" font-size="12">surface → management areas</text>
+  <rect x="736" y="350" width="212" height="58" fill="#1e293b" rx="5"/>
+  <text x="750" y="373" fill="#e2e8f0" font-size="13" font-weight="600">Guidance</text>
+  <text x="750" y="393" fill="#94a3b8" font-size="12">per-zone, no dosages</text>
+
+  <path d="M320 424 L320 452" stroke="#64748b" stroke-width="2"/>
+  <path d="M314 448 L320 458 L326 448 Z" fill="#64748b"/>
+  <path d="M680 424 L680 452" stroke="#64748b" stroke-width="2"/>
+  <path d="M674 448 L680 458 L686 448 Z" fill="#64748b"/>
+
+  <!-- EXPLANATION -->
+  <rect x="36" y="460" width="568" height="72" fill="none" stroke="#f87171" stroke-width="1.5" rx="8"/>
+  <text x="52" y="484" fill="#f87171" font-size="13" font-weight="700">4 · EXPLANATION · optional, cannot change any number</text>
+  <text x="52" y="508" fill="#e2e8f0" font-size="12.5">On-device language model, safety-filtered. Rejected text falls back to a fixed template.</text>
+
+  <!-- PRESENTATION -->
+  <rect x="620" y="460" width="344" height="72" fill="none" stroke="#34d399" stroke-width="1.5" rx="8"/>
+  <text x="636" y="484" fill="#34d399" font-size="13" font-weight="700">5 · PRESENTATION</text>
+  <text x="636" y="508" fill="#e2e8f0" font-size="12.5">On-device panel and an offline dashboard.</text>
+</svg>
